@@ -3,41 +3,68 @@ import Image from "next/image";
 import styles from "./page.module.css";
 import { Container, Header, Content, Footer, Navbar, Nav } from 'rsuite';
 import CogIcon from '@rsuite/icons/legacy/Cog';
-import { Chart } from 'primereact/chart';
+import { CategoryScale, Chart } from 'chart.js/auto';
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { getConsumptions, getDevices } from "@/api";
+import { getActiveDevices } from "@/api/utils";
+import PieChart from "@/components/PieChart";
+import LineChart from "@/components/LineChart";
 
+type ActiveDeviceType = {
+  name: string,
+}
 
 export default function Home() {
 
   const [statistics, setStatistics] = useState<any>([]);
+  const [activeDevices, setActiveDevices] = useState<ActiveDeviceType[]>([]);
 
   useEffect(() => {
-    axios.get(`/api/statistics`).then((res) => {
-          if(res.data.success){
-              setStatistics(res.data.data);
-          }
-      });
+    async function fetchStatistics() {
+      const statisticsFetched: any = await getConsumptions();
+
+      setStatistics(statisticsFetched.data);
+    }
+
+    fetchStatistics();
   }, [])
 
-  const data = {
-    labels: ['Пунктов выдачи заказов', 'Складов', 'Транзитных городов'],
-    datasets: [
-        {
-            data: [statistics?.city?.PickPoint, statistics?.city?.Warehouse, statistics?.city?.Transit],
-            backgroundColor: [
-                "#3b82f6", "#eab308", "#22c55e"
-            ],
-            hoverBackgroundColor: [
-                "#3b82f6", "#eab308", "#22c55e"
-            ]
-        }
-    ]
-  };
-  const options = {
-      cutout: '60%',
-      plugins: false
-  };
+  useEffect(() => {
+    async function fetchActiveDevices() {
+      const activeDevicesFetched: any = await getActiveDevices();
+
+      activeDevicesFetched.data.forEach((device: any) => {
+        setActiveDevices([...activeDevices, {
+          name: device.title,
+        }]);
+      });
+    }
+
+    fetchActiveDevices();
+  }, [])
+
+  const checkDeviceIsActive = (name: string) => {
+    return activeDevices.find(a => a.name === name) ? "Да" : "Нет";
+  }
+
+  // const data = {
+  //   labels: ['Пунктов выдачи заказов', 'Складов', 'Транзитных городов'],
+  //   datasets: [
+  //     {
+  //       data: [statistics?.city?.PickPoint, statistics?.city?.Warehouse, statistics?.city?.Transit],
+  //       backgroundColor: [
+  //         "#3b82f6", "#eab308", "#22c55e"
+  //       ],
+  //       hoverBackgroundColor: [
+  //         "#3b82f6", "#eab308", "#22c55e"
+  //       ]
+  //     }
+  //   ]
+  // };
+  // const options = {
+  //   cutout: '60%',
+  //   plugins: false
+  // };
 
   return (
     <main className={styles.main}>
@@ -46,7 +73,7 @@ export default function Home() {
           <Header>
             <Navbar appearance="inverse">
               <Navbar.Brand>
-                <a style={{ color: '#fff' }}><img className="logo" src="/logo.svg"/></a>
+                <p style={{ color: '#fff' }}><img className="logo" src="/logo.svg" /></p>
               </Navbar.Brand>
               {/* <Nav>
                 <Nav.Item>Home</Nav.Item>
@@ -69,24 +96,29 @@ export default function Home() {
               <img src="/lamp.png" alt="" />
               <div className="info">
                 <b>Лампа</b>
-                <p>Среднее потреблоение: </p>
+                {/* <p>Среднее потребление: </p> */}
+                <p className={`${checkDeviceIsActive("Лампа") === "Да" ? styles.on : styles.off}`}>Включено: {checkDeviceIsActive("Лампа")}</p>
               </div>
-              <Chart style={{width: "100px"}} type="doughnut" data={data} options={options} />
+              {/* <Chart style={{ width: "100px" }} type="doughnut" data={data} options={options} /> */}
             </div>
             <div className="electr">
               <img src="/toaster.webp" alt="" />
               <div className="info">
                 <b>Тостер</b>
-                <p>Среднее потреблоение: </p>
+                {/* <p>Среднее потребление: </p> */}
+                <p className={`${checkDeviceIsActive("Тостер") === "Да" ? styles.on : styles.off}`}>Включено: {checkDeviceIsActive("Вентилятор")}</p>
               </div>
             </div>
             <div className="electr">
               <img src="/wentel.webp" alt="" />
               <div className="info">
                 <b>Вентилятор</b>
-                <p>Среднее потреблоение: </p>
+                {/* <p>Среднее потребление: </p> */}
+                <p className={`${checkDeviceIsActive("Вентилятор") === "Да" ? styles.on : styles.off}`}>Включено: {checkDeviceIsActive("Тостер")}</p>
               </div>
             </div>
+
+            {/* <LineChart /> */}
           </Content>
           <Footer></Footer>
         </Container>

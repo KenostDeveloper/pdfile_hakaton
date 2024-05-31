@@ -5,7 +5,13 @@ import { Container, Header, Content, Footer, Navbar, Nav, SelectPicker } from "r
 import CogIcon from "@rsuite/icons/legacy/Cog";
 import { useEffect, useState } from "react";
 import { getConsumptions } from "@/api";
-import { PeriodEnum, getActiveDevices, getHighVolts } from "@/api/utils";
+import {
+	PeriodEnum,
+	getActiveDevices,
+	getDevices,
+	getDevicesActivities,
+	getHighVolts,
+} from "@/api/utils";
 import { CategoryScale, LinearScale, Chart as ChartJS } from "chart.js/auto";
 import Chart from "chart.js/auto";
 import { Bar, Line } from "react-chartjs-2";
@@ -21,7 +27,7 @@ type ActiveDeviceType = {
 export default function Home() {
 	const [statistics, setStatistics] = useState<any>([]);
 	const [activeDevices, setActiveDevices] = useState<ActiveDeviceType[]>([]);
-	const [statisticsPeriod, setStatisticsPeriod] = useState<string>("");
+	const [statisticsPeriod, setStatisticsPeriod] = useState<string>("За час");
 
 	const statPeriods = [
 		"За минуту",
@@ -39,7 +45,7 @@ export default function Home() {
 
 	useEffect(() => {
 		async function fetchStatistics() {
-			const statisticsFetched: any = await getConsumptions();
+			const statisticsFetched: any = await getConsumptions(PeriodEnum.ONE_HOUR);
 			setStatistics(statisticsFetched.data);
 		}
 
@@ -103,7 +109,7 @@ export default function Home() {
 		async function fetchHighVolts() {
 			const highVolts: any = await getHighVolts();
 
-			if(!localStorage.getItem("token")) {
+			if (!localStorage.getItem("token")) {
 				alert(highVolts.message + ": " + "Авторизуйтесь в системе для отправки заявки");
 				return;
 			}
@@ -169,20 +175,10 @@ export default function Home() {
 					<Header>
 						<Navbar appearance="inverse">
 							<Navbar.Brand>
-								<p style={{ color: "#fff" }}>
+								<p style={{ color: "#fff", height: "100%" }}>
 									<img className="logo" src="/logo.svg" />
 								</p>
 							</Navbar.Brand>
-							{/* <Nav>
-                <Nav.Item>Home</Nav.Item>
-                <Nav.Item>News</Nav.Item>
-                <Nav.Item>Products</Nav.Item>
-                <Nav.Menu title="About">
-                  <Nav.Item>Company</Nav.Item>
-                  <Nav.Item>Team</Nav.Item>
-                  <Nav.Item>Contact</Nav.Item>
-                </Nav.Menu>
-              </Nav> */}
 							<Nav pullRight>
 								<Nav.Item icon={<CogIcon />}>Settings</Nav.Item>
 							</Nav>
@@ -233,15 +229,15 @@ export default function Home() {
 								data={statPeriods}
 								placeholder="Выберите период"
 								onChange={(value, e) => setStatisticsPeriod(value!)}
-								defaultValue="За все время"
+								defaultValue="За день"
 							/>
-							<Line
+							<Bar
 								data={{
 									labels: statistics.map((item: any) => formatDate(item.created_at)),
 									datasets: [
 										{
 											label: "Энергопотребление",
-											data: statistics.map((item: any) => item.power),
+											data: statistics.map((item: any) => item.sumPower),
 											backgroundColor: [
 												"rgba(255, 99, 132, 0.2)",
 												"rgba(54, 162, 235, 0.2)",

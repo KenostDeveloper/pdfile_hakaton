@@ -24,11 +24,14 @@ export default function Auth() {
 			if (response.status !== 200) throw new Error(response.statusText);
 			if (response.data.error !== 0) {
 				console.log("Неправильный логин или пароль");
-                
+                alert("Неправильный логин или пароль");
 				return null;
 			}
 
 			console.log(response.data);
+			alert("Успешная авторизация");
+
+			localStorage.setItem("token", response.data.data.user.token);
 		} catch (e) {
 			console.log(e);
 		}

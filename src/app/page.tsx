@@ -5,10 +5,12 @@ import { Container, Header, Content, Footer, Navbar, Nav, SelectPicker } from "r
 import CogIcon from "@rsuite/icons/legacy/Cog";
 import { useEffect, useState } from "react";
 import { getConsumptions } from "@/api";
-import { PeriodEnum, getActiveDevices } from "@/api/utils";
+import { PeriodEnum, getActiveDevices, getHighVolts } from "@/api/utils";
 import { CategoryScale, LinearScale, Chart as ChartJS } from "chart.js/auto";
 import Chart from "chart.js/auto";
 import { Bar, Line } from "react-chartjs-2";
+import axios, { AxiosResponse } from "axios";
+import { headers } from "next/headers";
 
 ChartJS.register(CategoryScale, LinearScale);
 
@@ -67,26 +69,26 @@ export default function Home() {
 		async function fetchStatistics() {
 			let statisticsFetched: any = null;
 
-			switch(statisticsPeriod) {
+			switch (statisticsPeriod) {
 				case "За минуту":
-                    statisticsFetched = await getConsumptions(PeriodEnum.ONE_MINUTE);
-                    break;
-                case "За час":
-                    statisticsFetched = await getConsumptions(PeriodEnum.ONE_HOUR);
-                    break;
-                case "За день":
-                    statisticsFetched = await getConsumptions(PeriodEnum.ONE_DAY);
-                    break;
-                case "За неделю":
-                    statisticsFetched = await getConsumptions(PeriodEnum.ONE_WEEK);
-                    break;
-                case "За месяц":
-                    statisticsFetched = await getConsumptions(PeriodEnum.ONE_MONTH);
-                    break;
-                case "За все время":
-                    statisticsFetched = await getConsumptions();
-                    break;
-                default:
+					statisticsFetched = await getConsumptions(PeriodEnum.ONE_MINUTE);
+					break;
+				case "За час":
+					statisticsFetched = await getConsumptions(PeriodEnum.ONE_HOUR);
+					break;
+				case "За день":
+					statisticsFetched = await getConsumptions(PeriodEnum.ONE_DAY);
+					break;
+				case "За неделю":
+					statisticsFetched = await getConsumptions(PeriodEnum.ONE_WEEK);
+					break;
+				case "За месяц":
+					statisticsFetched = await getConsumptions(PeriodEnum.ONE_MONTH);
+					break;
+				case "За все время":
+					statisticsFetched = await getConsumptions();
+					break;
+				default:
 					statisticsFetched = await getConsumptions();
 					break;
 			}
@@ -97,13 +99,60 @@ export default function Home() {
 		fetchStatistics();
 	}, [statisticsPeriod]);
 
+	useEffect(() => {
+		async function fetchHighVolts() {
+			const highVolts: any = await getHighVolts();
+
+			if(!localStorage.getItem("token")) {
+				alert(highVolts.message + ": " + "Авторизуйтесь в системе для отправки заявки");
+				return;
+			}
+
+			const response: AxiosResponse = await axios.post(
+				`https://api-uae-test.ujin.tech/api/v1/tck/bms/tickets/create/?token=${localStorage.getItem(
+					"token"
+				)}`,
+				{
+					headers: {
+						"Content-Type": "application/json",
+					},
+					title: "Предупреждение о скачке напряжения",
+					description: "Обнаружен скачок напряжения",
+					priority: "high",
+					class: "inspection",
+					status: "new",
+					"initiator.id": parseInt(localStorage.getItem("token")!.toString().split("-")[1]),
+					types: [],
+					assignees: [],
+					contracting_companies: [],
+					objects: [
+						{
+							type: "building",
+							id: 40,
+						},
+					],
+					planned_start_at: null,
+					planned_end_at: null,
+					hide_planned_at_from_resident: null,
+					extra: null,
+				}
+			);
+
+			if (response.status !== 200) throw new Error(response.statusText);
+
+			alert(highVolts.message);
+		}
+
+		fetchHighVolts();
+	}, []);
+
 	const checkDeviceIsActive = (name: string) => {
 		return activeDevices.find((a) => a.name == name) != undefined ? "Да" : "Нет";
 	};
 
 	const formatDate = (date: Date) => {
 		const newDate = new Date(date);
-		
+
 		const day = newDate.getDate().toString().padStart(2, "0");
 		const month = (newDate.getMonth() + 1).toString().padStart(2, "0"); // добавляем 1, так как месяцы идут с 0 до 11
 		const year = newDate.getFullYear();

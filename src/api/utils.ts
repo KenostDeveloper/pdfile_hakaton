@@ -50,9 +50,23 @@ const getActiveDevices = async (): Promise<any> => {
     }
 }
 
+const getHighVolts = async (): Promise<any> => {
+    try {
+        const response: Response = await fetch(endpoints.highVolts);
+
+        if (response.status !== 200) throw new Error(response.statusText);
+
+        return await response.json();
+    }
+    catch (error) {
+        console.log(error);
+    }
+}
+
 export {
     getDevices,
     getConsumptions,
     PeriodEnum,
     getActiveDevices,
+    getHighVolts
 }

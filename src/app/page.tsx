@@ -1,14 +1,16 @@
 "use client";
-import Image from "next/image";
+
 import styles from "./page.module.css";
-import { Container, Header, Content, Footer, Navbar, Nav } from "rsuite";
+import { Container, Header, Content, Footer, Navbar, Nav, SelectPicker } from "rsuite";
 import CogIcon from "@rsuite/icons/legacy/Cog";
-import { CategoryScale, Chart } from "chart.js/auto";
 import { useEffect, useState } from "react";
-import { getConsumptions, getDevices } from "@/api";
-import { getActiveDevices } from "@/api/utils";
-import PieChart from "@/components/PieChart";
-import LineChart from "@/components/LineChart";
+import { getConsumptions } from "@/api";
+import { PeriodEnum, getActiveDevices } from "@/api/utils";
+import { CategoryScale, LinearScale, Chart as ChartJS } from "chart.js/auto";
+import Chart from "chart.js/auto";
+import { Bar, Line } from "react-chartjs-2";
+
+ChartJS.register(CategoryScale, LinearScale);
 
 type ActiveDeviceType = {
 	name: string;
@@ -17,11 +19,25 @@ type ActiveDeviceType = {
 export default function Home() {
 	const [statistics, setStatistics] = useState<any>([]);
 	const [activeDevices, setActiveDevices] = useState<ActiveDeviceType[]>([]);
+	const [statisticsPeriod, setStatisticsPeriod] = useState<string>("");
+
+	const statPeriods = [
+		"За минуту",
+		"За час",
+		"За день",
+		"За неделю",
+		"За месяц",
+		"За все время",
+	].map((item) => {
+		return {
+			label: item,
+			value: item,
+		};
+	});
 
 	useEffect(() => {
 		async function fetchStatistics() {
 			const statisticsFetched: any = await getConsumptions();
-
 			setStatistics(statisticsFetched.data);
 		}
 
@@ -47,30 +63,55 @@ export default function Home() {
 		}, 5000);
 	}, []);
 
-	const checkDeviceIsActive = (name: string) => {
-		console.log(activeDevices);
+	useEffect(() => {
+		async function fetchStatistics() {
+			let statisticsFetched: any = null;
 
+			switch(statisticsPeriod) {
+				case "За минуту":
+                    statisticsFetched = await getConsumptions(PeriodEnum.ONE_MINUTE);
+                    break;
+                case "За час":
+                    statisticsFetched = await getConsumptions(PeriodEnum.ONE_HOUR);
+                    break;
+                case "За день":
+                    statisticsFetched = await getConsumptions(PeriodEnum.ONE_DAY);
+                    break;
+                case "За неделю":
+                    statisticsFetched = await getConsumptions(PeriodEnum.ONE_WEEK);
+                    break;
+                case "За месяц":
+                    statisticsFetched = await getConsumptions(PeriodEnum.ONE_MONTH);
+                    break;
+                case "За все время":
+                    statisticsFetched = await getConsumptions();
+                    break;
+                default:
+					statisticsFetched = await getConsumptions();
+					break;
+			}
+
+			setStatistics(statisticsFetched.data);
+		}
+
+		fetchStatistics();
+	}, [statisticsPeriod]);
+
+	const checkDeviceIsActive = (name: string) => {
 		return activeDevices.find((a) => a.name == name) != undefined ? "Да" : "Нет";
 	};
 
-	// const data = {
-	//   labels: ['Пунктов выдачи заказов', 'Складов', 'Транзитных городов'],
-	//   datasets: [
-	//     {
-	//       data: [statistics?.city?.PickPoint, statistics?.city?.Warehouse, statistics?.city?.Transit],
-	//       backgroundColor: [
-	//         "#3b82f6", "#eab308", "#22c55e"
-	//       ],
-	//       hoverBackgroundColor: [
-	//         "#3b82f6", "#eab308", "#22c55e"
-	//       ]
-	//     }
-	//   ]
-	// };
-	// const options = {
-	//   cutout: '60%',
-	//   plugins: false
-	// };
+	const formatDate = (date: Date) => {
+		const newDate = new Date(date);
+		
+		const day = newDate.getDate().toString().padStart(2, "0");
+		const month = (newDate.getMonth() + 1).toString().padStart(2, "0"); // добавляем 1, так как месяцы идут с 0 до 11
+		const year = newDate.getFullYear();
+		const hours = newDate.getHours().toString().padStart(2, "0");
+		const minutes = newDate.getMinutes().toString().padStart(2, "0");
+
+		return `${day}.${month}.${year} ${hours}:${minutes}`;
+	};
 
 	return (
 		<main className={styles.main}>
@@ -109,7 +150,6 @@ export default function Home() {
 									Включено: {checkDeviceIsActive("Лампа")}
 								</p>
 							</div>
-							{/* <Chart style={{ width: "100px" }} type="doughnut" data={data} options={options} /> */}
 						</div>
 						<div className="electr">
 							<img src="/toaster.webp" alt="" />
@@ -136,7 +176,33 @@ export default function Home() {
 							</div>
 						</div>
 
-						{/* <LineChart /> */}
+						<div className={`${styles.stats}`}>
+							<h2 className={`${styles.stats__title}`}>Общая статистика энергопотребления:</h2>
+							<SelectPicker
+								value={statisticsPeriod}
+								searchable={false}
+								data={statPeriods}
+								placeholder="Выберите период"
+								onChange={(value, e) => setStatisticsPeriod(value!)}
+								defaultValue="За все время"
+							/>
+							<Line
+								data={{
+									labels: statistics.map((item: any) => formatDate(item.created_at)),
+									datasets: [
+										{
+											label: "Энергопотребление",
+											data: statistics.map((item: any) => item.power),
+											backgroundColor: [
+												"rgba(255, 99, 132, 0.2)",
+												"rgba(54, 162, 235, 0.2)",
+												"rgba(255, 206, 86, 0.2)",
+											],
+										},
+									],
+								}}
+							/>
+						</div>
 					</Content>
 					<Footer></Footer>
 				</Container>

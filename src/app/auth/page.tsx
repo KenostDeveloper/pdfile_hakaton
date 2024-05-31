@@ -1,10 +1,9 @@
 "use client";
 import { Container, Header, Content, Footer, Navbar, Nav, Button, Input } from "rsuite";
 import CogIcon from "@rsuite/icons/legacy/Cog";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import styles from "./page.module.css";
 import axios, { AxiosResponse } from "axios";
-import { Toast } from "primereact/toast";
 
 type AuthDataType = {
 	login: string;

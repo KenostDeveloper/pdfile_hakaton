@@ -1,0 +1,22 @@
+.on {
+    color: green;
+}
+
+.off {
+    color: red;
+}
+
+
+.stats {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+
+    margin-block: 100px;
+}
+
+.stats__title {
+    font-size: 26px;
+    font-weight: 500;
+}
